@@ -27,44 +27,80 @@ namespace BeatmapReader {
 
 			for (size_t j = 0; j < stepsize; j++)
 			{
+				std::vector<int> timeDeltas;
 				if (j + i >= objects.size())
 				{
 					Overflow = true;
 					break;
 				}
 
-				// Calculate Aim Value
-				int deltaX, deltaY;
+				// Get Deltas
+				int deltaX, deltaY, deltaTime;
 
 				if (j < 1 || i < 1)
 				{
 					deltaX = 0;
 					deltaY = 0;
+					deltaTime = 250;
 				}
 				else
 				{
 					deltaX = objects.at(i + j).GetX() - objects.at(i + j - 1).GetX();
 					deltaY = objects.at(i + j).GetY() - objects.at(i + j - 1).GetY();
+					deltaTime = objects.at(i + j).GetTime() - objects.at(i + j - 1).GetTime();
 				}
 
-				tempAim += std::sqrt(
-					deltaX +
-					deltaY
+				timeDeltas.push_back(deltaTime);
+
+				// Calculate Aim Value
+				tempAim += 1.0 / std::sqrt(
+					std::pow(deltaX, 2) +
+					std::pow(deltaY, 2)
 				);
 
 				// Calculate Speed Value
+				tempSpeed += 1.0 / std::abs(deltaTime);
 
 				// Calculate Strain/Difficulty value
 
-				// Calculate Consistency in Timing signatures
+				if (timeDeltas.size() == stepsize)
+				{
+					long sum = 0;
+					for (const auto& delta : timeDeltas)
+					{
+						sum += delta;
+					}
+
+					auto r = sum / timeDeltas.size();
+
+					tempDifficulty += 1.0 / (166.666666 / r * timeDeltas.size());
+				}
 			}
 
 			// Add Calculated Values to PP
 
-			Aim += 1.0 / tempAim;
-			Speed += 1.0 / tempSpeed;
-			Difficulty += 1.0 / tempDifficulty;
-			Consistency += 1.0 / tempConsistency;
+			// Make sure we dont divide by 0
+			if (tempAim <= 0)
+			{
+				tempAim = 1;
+			}
+			if (tempSpeed <= 0)
+			{
+				tempSpeed = 1;
+			}
+			if (tempDifficulty <= 0)
+			{
+				tempDifficulty = 1;
+			}
+			if (tempConsistency <= 0)
+			{
+				tempConsistency = 1;
+			}
+
+			Aim += 1.0 / tempAim * stepsize;
+			Speed += 1.0 / tempSpeed * stepsize;
+			Difficulty += 1.0 / tempDifficulty * stepsize;
+			Consistency += 1.0 / tempConsistency * stepsize;
 
 			if (Overflow)
 			{

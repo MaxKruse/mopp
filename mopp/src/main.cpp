@@ -14,7 +14,6 @@ int main(int argc, char** args)
 	else
 	{
 		fmt::print("Please Provide a path to the .osu file");
-		return 1;
 	}
 
 	return 0;
